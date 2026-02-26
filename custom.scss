@@ -1,0 +1,162 @@
+/*-- scss:defaults --*/
+
+// Tipografía
+$font-family-sans-serif: "Calibri", "Segoe UI", Arial, sans-serif;
+$font-family-monospace:  "Consolas", "Fira Code", "Courier New", monospace;
+$presentation-font-size-root: 32px;
+
+// Colores base
+$body-bg:    #F9F4EF;
+$body-color: #1A0A0F;
+$link-color: #7B1D3A;
+
+// Encabezados
+$presentation-heading-font:  "Calibri", "Segoe UI", Arial, sans-serif;
+$presentation-heading-color: #1A0A0F;
+
+// Código
+$code-color:    #7B1D3A;
+$code-bg:       #1E1E2E;
+
+/*-- scss:rules --*/
+
+/* ── Fondo de diapositivas de contenido ─────────────────────────────────── */
+.reveal .slides section {
+  text-align: left;
+}
+
+/* ── Encabezados h2 (títulos de slides) ───────────────────────────────────*/
+.reveal h2 {
+  color: #7B1D3A;
+  font-size: 1.6em;
+  font-weight: 700;
+  border-bottom: none;
+}
+
+/* ── Encabezados de sección h1 ────────────────────────────────────────────*/
+.reveal h1 {
+  font-size: 2em;
+  font-weight: 800;
+}
+
+/* ── Bloques de código ────────────────────────────────────────────────────*/
+.reveal pre {
+  background-color: #1E1E2E;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  font-size: 0.72em;
+  margin: 0.5em 0;
+}
+
+.reveal pre code {
+  color: #CDD6F4;
+  background: transparent;
+  font-family: "Consolas", "Fira Code", monospace;
+}
+
+/* Inline code */
+.reveal code {
+  color: #7B1D3A;
+  background: #F0E8EC;
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+  font-size: 0.88em;
+}
+
+/* Código dentro de pre: no hereda el fondo inline */
+.reveal pre code {
+  color: #CDD6F4;
+  background: transparent;
+  padding: 0;
+}
+
+/* ── Tablas ───────────────────────────────────────────────────────────────*/
+.reveal table {
+  font-size: 0.82em;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.reveal table thead tr {
+  background-color: #7B1D3A;
+  color: #FFFFFF;
+}
+
+.reveal table tbody tr:nth-child(even) {
+  background-color: #F0E8EC;
+}
+
+.reveal table td,
+.reveal table th {
+  padding: 0.4em 0.7em;
+  border: 1px solid #D8C8CE;
+}
+
+/* ── Callouts ─────────────────────────────────────────────────────────────*/
+.callout {
+  font-size: 0.85em;
+  border-radius: 6px;
+}
+
+.callout-note {
+  border-left: 4px solid #1D4B6E;
+  background-color: #EEF4FB;
+}
+
+.callout-tip {
+  border-left: 4px solid #3B6E4E;
+  background-color: #EFF7F2;
+}
+
+.callout-warning {
+  border-left: 4px solid #C8993A;
+  background-color: #FFF8EC;
+}
+
+.callout-caution {
+  border-left: 4px solid #C0392B;
+  background-color: #FFF3F3;
+}
+
+/* ── Columnas ─────────────────────────────────────────────────────────────*/
+.reveal .columns {
+  gap: 1.5em;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────*/
+.reveal .footer {
+  font-size: 0.55em;
+  color: #9B8085;
+}
+
+/* ── Slide numbers ────────────────────────────────────────────────────────*/
+.reveal .slide-number {
+  color: #9B8085;
+  background-color: transparent;
+  font-size: 0.65em;
+}
+
+/* ── Slides de sección (h1 background) ───────────────────────────────────*/
+.reveal section.has-dark-background h1,
+.reveal section.has-dark-background h2,
+.reveal section.has-dark-background p,
+.reveal section.has-dark-background li {
+  color: #FFFFFF;
+}
+
+/* ── Blockquote ───────────────────────────────────────────────────────────*/
+.reveal blockquote {
+  background: #F0E8EC;
+  border-left: 4px solid #7B1D3A;
+  border-radius: 4px;
+  padding: 0.6em 1em;
+  margin: 0.8em 0;
+  font-size: 0.9em;
+  font-style: normal;
+  color: #1A0A0F;
+}
+
+/* ── Progress bar ─────────────────────────────────────────────────────────*/
+.reveal .progress span {
+  background-color: #7B1D3A;
+}
