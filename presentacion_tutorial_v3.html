@@ -9,7 +9,7 @@
 <link href="presentacion_tutorial_v3_files/libs/quarto-html/quarto-syntax-highlighting-969ddfa49e00a70eb3423444dbc81f6c.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.8.25">
 
-  <meta name="author" content="Tutorial dplyr v3">
+  <meta name="author" content="Roberto Álvarez">
   <meta name="dcterms.date" content="2026-02-25">
   <title>Aprendiendo dplyr paso a paso</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -100,6 +100,8 @@
   <link href="presentacion_tutorial_v3_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="presentacion_tutorial_v3_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="presentacion_tutorial_v3_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="presentacion_tutorial_v3_files/libs/revealjs/plugin/reveal-chalkboard/font-awesome/css/all.css" rel="stylesheet">
+  <link href="presentacion_tutorial_v3_files/libs/revealjs/plugin/reveal-chalkboard/style.css" rel="stylesheet">
   <link href="presentacion_tutorial_v3_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
   <style type="text/css">
     .reveal div.sourceCode {
@@ -200,7 +202,7 @@
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
 <div class="quarto-title-author-name">
-Tutorial dplyr v3 
+Roberto Álvarez 
 </div>
 </div>
 </div>
@@ -379,16 +381,23 @@ El vocabulario completo son <strong>6 verbos</strong>.</p>
 </div>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="" aria-hidden="true" tabindex="-1"></a>salud <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"dataset_categorical_NA.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="" aria-hidden="true" tabindex="-1"></a>salud <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"01_dataset_categorical_NA.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section class="slide level2">
+<section id="el-pipe-o" class="slide level2">
+<h2>El pipe <code>| &gt;</code> o <code data-background-color="#0f2035">%&gt;%</code></h2>
+<p>Antes de los verbos, necesitamos entender el pipe.</p>
 
-</section></section>
-<section>
-<section id="el-pipe" class="title-slide slide level1 center" data-background-color="#1A0A0F">
-<h1>El pipe <code>|&gt;</code></h1>
-
+<img data-src="images/MagritPipe.jpeg" style="width:60.0%" class="r-stretch quarto-figure-center"><p class="caption">Esto no es una pipa</p></section>
+<section id="rené-magritte-esto-no-es-una-pipa-1929-la-obra-maestra-del-surrealismo." class="slide level2">
+<h2>René Magritte, “Esto no es una pipa” (1929) — la obra maestra del surrealismo.<br>
+</h2>
+<iframe data-external="1" src="https://www.youtube.com/embed/AZOvQ4KcJNE?si=xd7hgPsAxpEX21-e?start=116" width="800" height="500" title="René Magritte" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+</section>
+<section id="el-paquete-magrittr-y-el-pipe" class="slide level2">
+<h2>El paquete magrittr y el pipe <code>%&gt;%</code></h2>
+<p>El pipe fue popularizado por el paquete <code>magrittr</code> de Hadley Wickham. En R 4.1 se incorporó oficialmente como <code>|&gt;</code>.</p>
+<p><img data-src="images/MagrittrPaquete.png" class="quarto-figure quarto-figure-center" style="width:90.0%">)</p>
 </section>
 <section id="qué-problema-resuelve" class="slide level2">
 <h2>¿Qué problema resuelve?</h2>
@@ -1294,6 +1303,7 @@ Visualización de datos <em>(ya usada en este tutorial)</em></p>
 </section></section>
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
+<p><img src="images/BiologiaCuantitativaSistemasComplejos 17_18_10.png" class="slide-logo"></p>
 <div class="footer footer-default">
 <p>dplyr paso a paso · UCI ML Repository + dataset_categorical_NA.csv</p>
 </div>
@@ -1306,6 +1316,7 @@ Visualización de datos <em>(ya usada en este tutorial)</em></p>
   <script src="presentacion_tutorial_v3_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
   <script src="presentacion_tutorial_v3_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
   <script src="presentacion_tutorial_v3_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="presentacion_tutorial_v3_files/libs/revealjs/plugin/reveal-chalkboard/plugin.js"></script>
   <script src="presentacion_tutorial_v3_files/libs/revealjs/plugin/quarto-support/support.js"></script>
   
 
@@ -1327,7 +1338,8 @@ Visualización de datos <em>(ya usada en este tutorial)</em></p>
 'autoAnimateDuration': 1,
 'autoAnimateUnmatched': true,
 'jumpToSlide': true,
-'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleChalkboard(event)\"><kbd>b</kbd> Toggle Chalkboard</a></li>\n<li class=\"slide-tool-item\" data-item=\"6\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleNotesCanvas(event)\"><kbd>c</kbd> Toggle Notes Canvas</a></li>\n<li class=\"slide-tool-item\" data-item=\"7\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.downloadDrawings(event)\"><kbd>d</kbd> Download Drawings</a></li>\n<li class=\"slide-tool-item\" data-item=\"8\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'chalkboard': {"buttons":true},
 'smaller': false,
  
         // Display controls in the bottom right corner
@@ -1473,9 +1485,9 @@ Visualización de datos <em>(ya usada en este tutorial)</em></p>
         // The "normal" size of the presentation, aspect ratio will be preserved
         // when the presentation is scaled to fit different resolutions. Can be
         // specified using percentage units.
-        width: 1280,
+        width: 2584,
 
-        height: 720,
+        height: 1597,
 
         // Factor of the display size that should remain empty around the content
         margin: 8.0e-2,
@@ -1498,7 +1510,7 @@ Visualización de datos <em>(ya usada en este tutorial)</em></p>
         },
 
         // reveal.js plugins
-        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, RevealChalkboard, QuartoSupport,
 
           RevealMath,
           RevealNotes,

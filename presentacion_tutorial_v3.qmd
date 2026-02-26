@@ -1,7 +1,7 @@
 ---
 title: "Aprendiendo `dplyr` paso a paso"
 subtitle: "De R base a tidyverse · 🍷 Vinos + 🏥 Salud"
-author: "Tutorial dplyr v3"
+author: "Roberto Álvarez"
 date: today
 lang: es
 format:
@@ -10,14 +10,14 @@ format:
     transition: slide
     transition-speed: fast
     slide-number: true
-    chalkboard: false
+    chalkboard: true
     highlight-style: github-dark
     code-line-numbers: false
     fig-align: center
     footer: "dplyr paso a paso · UCI ML Repository + dataset_categorical_NA.csv"
-    logo: ""
-    width: 1280
-    height: 720
+    logo: "images/BiologiaCuantitativaSistemasComplejos 17_18_10.png"
+    width: 2584
+    height: 1597
     margin: 0.08
     smaller: false
 execute:
@@ -175,14 +175,41 @@ Los datos faltantes son realidad en salud. Usa `na.rm = TRUE` en resúmenes, `is
 :::
 
 ```r
-salud <- read_csv("dataset_categorical_NA.csv", show_col_types = FALSE)
+salud <- read_csv("01_dataset_categorical_NA.csv", show_col_types = FALSE)
 ```
 
 ---
 
-# El pipe `|>` {background-color="#1A0A0F"}
+## El pipe `| >` o ` %>%  `{background-color="#0f2035"}
 
----
+Antes de los verbos, necesitamos entender el pipe.
+
+![Esto no es una pipa](images/MagritPipe.jpeg){fig-align="center" width="60%"}
+
+
+------------------------------------------------------------------------
+
+## René Magritte, "Esto no es una pipa" (1929) — la obra maestra del surrealismo.\
+  
+  
+  {{< video https://www.youtube.com/embed/AZOvQ4KcJNE?si=xd7hgPsAxpEX21-e  width="800" height="500" 
+    title="René Magritte"
+    start="116"
+    aspect-ratio="21x9" 
+  >}}
+  
+
+------------------------------------------------------------------------
+
+## El paquete magrittr y el pipe `%>%`
+
+El pipe fue popularizado por el paquete `magrittr` de Hadley Wickham. En R 4.1 se incorporó oficialmente como `|>`.
+
+
+![](images/MagrittrPaquete.png){fig-align="center" width="90%"})
+
+-------------------------------------------------------------------------
+
 
 ## ¿Qué problema resuelve?
 
