@@ -1,0 +1,1528 @@
+---
+title: "Aprendiendo `dplyr` paso a paso"
+subtitle: "De R base a tidyverse, con datos reales de vinos y salud"
+author: "Roberto Álvarez elaborado con datos de UCI ML Repository y dataset_categorical_NA.csv"
+date: today
+lang: es
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "📋 Contenido"
+    theme: flatly
+    code-fold: false
+    code-tools: true
+    highlight-style: github
+    fig-width: 8
+    fig-height: 5
+    self-contained: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(tidyr)
+```
+
+# ¿Por qué aprender `dplyr`? {.unnumbered}
+
+Si ya conoces R base, sabes que se puede hacer casi cualquier cosa con él. Pero conforme los análisis crecen, el código puede volverse difícil de leer y mantener.
+
+`dplyr` es un paquete del ecosistema **tidyverse** que te da una forma consistente y legible de manipular tablas de datos. No reemplaza a R base, sino que lo complementa: es R base con mejores modales.
+
+Lo interesante es que el vocabulario de `dplyr` se basa en seis verbos principales. Una vez que los dominas, puedes hacer análisis de datos complejos escribiendo código que casi se lee en español.
+
+```{r, eval=FALSE}
+# Si aún no tienes los paquetes, instálalos una sola vez:
+install.packages("tidyverse")
+```
+
+```{r}
+# Cargamos lo que usaremos en todo el tutorial
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(tidyr)
+```
+
+---
+
+# Los datos que usaremos
+
+Trabajaremos con dos fuentes reales durante todo el tutorial. No cambiaremos de datos: la idea es que conforme aprendas verbos, los apliques sobre las mismas tablas y vayas ganando familiaridad.
+
+## Dataset 1 — Calidad de vinos (UCI)
+
+**Fuente:** UCI Machine Learning Repository  
+Este dataset fue creado en Portugal y contiene mediciones fisicoquímicas de muestras de vino tinto y blanco, junto con una puntuación de calidad asignada por catadores (de 0 a 10).
+
+**Variables clave:**
+
+| Variable | Descripción |
+|---|---|
+| `tipo` | `"tinto"` o `"blanco"` |
+| `quality` | Puntuación del catador (0 = muy malo, 10 = excelente) |
+| `alcohol` | Porcentaje de alcohol |
+| `pH` | Acidez (típicamente entre 2.9 y 3.9) |
+| `volatile acidity` | Acidez volátil — niveles altos dan sabor a vinagre |
+| `residual sugar` | Azúcar que quedó después de fermentar |
+
+```{r cargar-vinos}
+url_tinto  <- "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
+url_blanco <- "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"
+
+vino_tinto  <- read_delim(url_tinto,  delim = ";", show_col_types = FALSE)
+vino_blanco <- read_delim(url_blanco, delim = ";", show_col_types = FALSE)
+
+# Añadimos columna "tipo" para identificarlos al unirlos
+vino_tinto  <- mutate(vino_tinto,  tipo = "tinto")
+vino_blanco <- mutate(vino_blanco, tipo = "blanco")
+
+# bind_rows() apila las dos tablas (como pegar una encima de la otra)
+vinos <- bind_rows(vino_tinto, vino_blanco)
+
+glimpse(vinos)
+```
+
+```{r}
+# ¿Cuántos vinos hay de cada tipo?
+table(vinos$tipo)
+```
+
+> 💡 **Nota:** Si no tienes conexión a internet, descarga los archivos desde las URLs y cárgalos con `read_delim("ruta/archivo.csv", delim = ";")`.
+
+---
+
+## Dataset 2 — Indicadores de salud con variables categóricas y NA
+
+**Fuente:** `dataset_categorical_NA.csv`  
+Este dataset contiene registros de personas con mediciones clínicas, hábitos de vida y características sociodemográficas. Incluye valores `NA` (datos faltantes) — situación muy frecuente en datos reales de salud.
+
+Cada fila representa un **participante**. Las columnas se dividen en variables numéricas (mediciones clínicas) y variables categóricas (perfil sociodemográfico).
+
+**Variables clave:**
+
+| Variable | Tipo | Descripción |
+|---|---|---|
+| `ID` | Identificador | Clave única del participante |
+| `Age` | Numérica (con NA) | Edad en años |
+| `BMI` | Numérica | Índice de Masa Corporal |
+| `BloodPressure` | Numérica | Presión arterial |
+| `Cholesterol` | Numérica | Colesterol total |
+| `Glucose` | Numérica | Glucosa en sangre |
+| `StressLevel` | Numérica (con NA) | Nivel de estrés (0–100) |
+| `SleepHours` | Numérica | Horas de sueño |
+| `SmokingStatus` | Categórica | `Fuma`, `No fuma`, `Ex-fumadora` |
+| `EducationLevel` | Categórica | Preparatoria, Posgrado… |
+| `MaritalStatus` | Categórica | Casada, Divorciada, Unión libre… |
+| `EmploymentStatus` | Categórica | Tiempo completo, Estudiante… |
+| `ResidenceType` | Categórica | Urbano, Suburbano, Rural |
+
+```{r cargar-salud}
+salud <- read_csv("01_RawData/dataset_categorical_NA.csv", show_col_types = FALSE)
+
+glimpse(salud)
+```
+
+```{r explorar-nas}
+# ¿Cuántos valores NA hay por columna?
+salud |>
+  summarise(across(everything(), ~ sum(is.na(.)))) |>
+  pivot_longer(everything(), names_to = "columna", values_to = "n_NA") |>
+  filter(n_NA > 0) |>
+  arrange(desc(n_NA))
+```
+
+> 💡 **Nota sobre los NA:** Los valores faltantes son una realidad del trabajo con datos de salud. `dplyr` los respeta y los propaga en los cálculos. Cuando sea necesario ignorarlos usaremos `na.rm = TRUE` dentro de las funciones de resumen, y `is.na()` para tratarlos explícitamente en los filtros y clasificaciones.
+
+---
+
+# El pipe: `|>` (o `%>%`)
+
+Antes de aprender los verbos, necesitamos entender el **pipe**, porque lo usaremos constantemente a partir de aquí.
+
+## ¿Qué problema resuelve?
+
+En R base, cuando quieres aplicar varias operaciones en secuencia, las tienes que *anidar*: leer el código de adentro hacia afuera, lo cual no es natural.
+
+```{r}
+# R BASE: para obtener los primeros 5 vinos con quality >= 8
+# tienes que leer de adentro hacia afuera: primero filter, luego head
+resultado_base <- head(
+  vinos[vinos$quality >= 8, c("tipo", "quality", "alcohol")],
+  5
+)
+resultado_base
+```
+
+El pipe `|>` te permite escribir las mismas operaciones **de arriba a abajo**, como una receta:
+
+```{r}
+# CON PIPE: mismo resultado, se lee de izquierda a derecha
+resultado_pipe <- vinos |>                        # 1. empezamos con los datos
+  filter(quality >= 8) |>                         # 2. nos quedamos con quality >= 8
+  select(tipo, quality, alcohol) |>               # 3. elegimos columnas
+  head(5)                                         # 4. tomamos las primeras 5
+
+resultado_pipe
+```
+
+El pipe toma lo que está a su izquierda y lo pasa como **primer argumento** a la función de la derecha. Estos dos son equivalentes:
+
+```{r eval=FALSE}
+# Estos dos bloques hacen exactamente lo mismo:
+filter(vinos, quality >= 8)
+vinos |> filter(quality >= 8)
+```
+
+## El atajo de teclado
+
+En RStudio:
+
+- **Windows/Linux:** `Ctrl + Shift + M`
+- **Mac:** `Cmd + Shift + M`
+
+> 🔧 Si el atajo produce `%>%` en lugar de `|>`, ve a *Tools → Global Options → Code* y activa *"Use native pipe operator (`|>`)"*.
+
+> **`|>` vs `%>%`:** El pipe nativo `|>` está en R desde la versión 4.1 (2021). El `%>%` viene del paquete `magrittr` y es casi idéntico. Para este curso son intercambiables.
+
+## El pipe cobra sentido al encadenar varios pasos
+
+```{r}
+# Con vinos: filtrar, seleccionar y ordenar en una sola cadena
+vinos |>
+  filter(tipo == "tinto") |>
+  filter(quality >= 7) |>
+  select(tipo, quality, alcohol, pH) |>
+  arrange(desc(alcohol)) |>
+  head(8)
+```
+
+```{r}
+# Con salud: participantes que fuman, seleccionando variables clave
+salud |>
+  filter(SmokingStatus == "Fuma") |>
+  select(ID, Age, BMI, Cholesterol, SmokingStatus) |>
+  head(8)
+```
+
+A partir de aquí usaremos `|>` en todos los ejemplos.
+
+---
+
+# Verbo 1: `filter()` — Quedarte solo con ciertas filas
+
+## La idea
+
+`filter()` es el equivalente de poner condiciones. Te quedas con las filas que cumplen lo que pides. Funciona exactamente igual que `[condición, ]` en R base, pero es más legible.
+
+```{r}
+# R BASE: vinos con quality == 9
+vinos[vinos$quality == 9, ]
+
+# DPLYR: mismo resultado, más claro
+filter(vinos, quality == 9)
+```
+
+Nota que en `dplyr` no necesitas escribir `vinos$quality` — dentro de los verbos de `dplyr`, R ya sabe a qué tabla te refieres.
+
+## Una condición
+
+```{r}
+# Quedarnos solo con vinos tintos
+filter(vinos, tipo == "tinto")
+```
+
+```{r}
+# Participantes con BMI mayor a 30 (obesidad)
+filter(salud, BMI > 30)
+```
+
+## Dos condiciones con AND (`&`)
+
+Ambas condiciones deben cumplirse a la vez:
+
+```{r}
+# Vinos tintos Y de calidad alta (los dos al mismo tiempo)
+filter(vinos, tipo == "tinto" & quality >= 8)
+```
+
+En `dplyr` puedes escribir varias condiciones separadas por coma — es equivalente al `&`:
+
+```{r}
+# Participantes que fuman Y tienen BMI mayor a 25
+filter(salud, SmokingStatus == "Fuma", BMI > 25)
+```
+
+## Dos condiciones con OR (`|`)
+
+Al menos una de las condiciones debe cumplirse:
+
+```{r}
+# Vinos que tengan quality == 9 O alcohol > 14
+filter(vinos, quality == 9 | alcohol > 14) |>
+  select(tipo, quality, alcohol) |>
+  head(8)
+```
+
+## Filtrar por varios valores: `%in%`
+
+Cuando quieres filtrar por varios valores de la misma columna, `%in%` es tu amigo:
+
+```{r}
+# Vinos de calidad 8 o 9
+filter(vinos, quality %in% c(8, 9)) |>
+  select(tipo, quality, alcohol) |>
+  head(8)
+```
+
+```{r}
+# Participantes de zona urbana o suburbana
+filter(salud, ResidenceType %in% c("Urbano", "Suburbano")) |>
+  count(ResidenceType)
+```
+
+## Filtrar por rango: `between()`
+
+```{r}
+# Vinos con pH entre 3.0 y 3.1 (incluyendo los extremos)
+filter(vinos, between(pH, 3.0, 3.1)) |>
+  select(tipo, pH, quality) |>
+  head(6)
+```
+
+```{r}
+# Participantes en edad laboral (25 a 55 años)
+filter(salud, between(Age, 25, 55)) |>
+  select(ID, Age, EmploymentStatus) |>
+  head(8)
+```
+
+## Manejar NA en los filtros
+
+Los valores `NA` no son ni `TRUE` ni `FALSE`, por lo que se excluyen silenciosamente al filtrar. Para incluirlos explícitamente:
+
+```{r}
+# Participantes sin dato de edad O menores de 30
+filter(salud, is.na(Age) | Age < 30) |>
+  select(ID, Age, SmokingStatus)
+```
+
+## Con el pipe: encadenando filtros
+
+```{r}
+# Vinos tintos de calidad alta, ordenados por alcohol
+vinos |>
+  filter(tipo == "tinto") |>
+  filter(quality >= 7) |>
+  select(tipo, quality, alcohol, pH) |>
+  arrange(desc(alcohol)) |>
+  head(8)
+```
+
+```{r}
+# Participantes urbanos, con empleo de tiempo completo y estrés alto
+salud |>
+  filter(ResidenceType == "Urbano") |>
+  filter(EmploymentStatus == "Tiempo completo") |>
+  filter(StressLevel > 60) |>
+  select(ID, Age, BMI, SmokingStatus, StressLevel) |>
+  head(10)
+```
+
+> ⚠️ **Error frecuente:** Usar `=` en vez de `==` dentro de `filter()`:
+> ```r
+> filter(vinos, quality = 8)          # ❌ Error: = es asignación
+> filter(vinos, quality == 8)         # ✅ Correcto: == es comparación
+> filter(salud, SmokingStatus = "Fuma") # ❌
+> filter(salud, SmokingStatus == "Fuma") # ✅
+> ```
+
+---
+
+::: {.callout-note icon=false}
+## 🏋️ Ejercicios — `filter()`
+
+**1.** ¿Cuántos vinos blancos tienen una calidad de 5 o menos?  
+*Pista:* `filter()` + `nrow()` o `count()`
+
+**2.** Filtra los vinos tintos que tengan alcohol mayor al promedio de todos los vinos.  
+*Pista:* puedes usar `mean(vinos$alcohol)` como valor de referencia dentro del filter.
+
+**3.** ¿Cuántos participantes del dataset `salud` son ex-fumadores y residen en zona urbana?
+
+**4.** Filtra los participantes con nivel de estrés mayor a 80. ¿Qué estatus de tabaquismo predomina entre ellos?  
+*Pista:* `filter()` + `count()`.
+
+:::
+
+::: {.callout-tip icon=false collapse=true}
+## ✅ Soluciones
+
+```{r}
+# 1. Vinos blancos con calidad 5 o menos
+filter(vinos, tipo == "blanco", quality <= 5) |> nrow()
+
+# 2. Vinos tintos con alcohol mayor al promedio global
+filter(vinos, tipo == "tinto", alcohol > mean(vinos$alcohol))
+
+# 3. Ex-fumadores en zona urbana
+filter(salud, SmokingStatus == "Ex-fumadora", ResidenceType == "Urbano") |> nrow()
+
+# 4. Estatus de tabaquismo con estrés alto
+salud |>
+  filter(StressLevel > 80) |>
+  count(SmokingStatus, sort = TRUE)
+```
+:::
+
+---
+
+# Verbo 2: `select()` — Quedarte solo con ciertas columnas
+
+## La idea
+
+`filter()` trabaja con **filas**. `select()` trabaja con **columnas**. Si tienes una tabla con 26 columnas y solo necesitas 5, `select()` es lo que usas.
+
+```{r}
+# R BASE: seleccionar columnas por nombre (con comillas y c())
+vinos[, c("tipo", "quality", "alcohol")]
+
+# DPLYR: más limpio, sin comillas, sin c()
+select(vinos, tipo, quality, alcohol)
+```
+
+## Selección básica
+
+```{r}
+# Vinos: tres columnas clave
+vinos |>
+  select(tipo, quality, alcohol) |>
+  head(5)
+```
+
+```{r}
+# Salud: perfil básico de cada participante
+salud |>
+  select(ID, Age, BMI, SmokingStatus, ResidenceType) |>
+  head(5)
+```
+
+## Excluir columnas con `-`
+
+A veces es más fácil decir "quiero todo menos estas columnas":
+
+```{r}
+# Quitamos las columnas de dióxido de azufre
+vinos |>
+  select(-`free sulfur dioxide`, -`total sulfur dioxide`) |>
+  names()
+```
+
+```{r}
+# Quitamos las medidas corporales directas del dataset de salud
+salud |>
+  select(-Weight, -Height, -WaistCircumference, -HipCircumference) |>
+  names()
+```
+
+## Renombrar al seleccionar
+
+Con la sintaxis `nuevo_nombre = nombre_original`:
+
+```{r}
+vinos |>
+  select(
+    tipo,
+    calidad        = quality,
+    alcohol,
+    acidez_volatil = `volatile acidity`
+  ) |>
+  head(4)
+```
+
+```{r}
+salud |>
+  select(
+    participante = ID,
+    edad         = Age,
+    imc          = BMI,
+    tabaquismo   = SmokingStatus,
+    residencia   = ResidenceType
+  ) |>
+  head(4)
+```
+
+## Helpers: seleccionar por patrón
+
+Dentro de `select()` hay funciones especiales llamadas *helpers* que seleccionan por patrón de nombre:
+
+```{r}
+# Columnas cuyo nombre empieza con "total" (vinos)
+vinos |>
+  select(tipo, quality, starts_with("total")) |>
+  head(4)
+```
+
+```{r}
+# Columnas que contienen "Circumference" (salud)
+salud |>
+  select(ID, contains("Circumference")) |>
+  head(4)
+```
+
+```{r}
+# Solo columnas numéricas (salud)
+salud |>
+  select(where(is.numeric)) |>
+  head(3)
+```
+
+```{r}
+# Solo columnas categóricas (salud) — muy útil para explorar variables de texto
+salud |>
+  select(where(is.character)) |>
+  head(3)
+```
+
+### Tabla de helpers
+
+| Helper | ¿Qué selecciona? |
+|---|---|
+| `starts_with("x")` | Nombres que empiezan con "x" |
+| `ends_with("x")` | Nombres que terminan con "x" |
+| `contains("x")` | Nombres que contienen "x" |
+| `where(is.numeric)` | Columnas numéricas |
+| `where(is.character)` | Columnas de texto |
+| `everything()` | Todas las columnas restantes |
+
+## `select()` y `filter()` juntos con el pipe
+
+```{r}
+# Vinos de calidad alta: solo las columnas relevantes
+vinos |>
+  filter(quality >= 8) |>
+  select(tipo, quality, alcohol, pH) |>
+  head(10)
+```
+
+```{r}
+# Participantes que fuman: perfil clínico básico
+salud |>
+  filter(SmokingStatus == "Fuma") |>
+  select(ID, Age, BMI, Cholesterol, BloodPressure) |>
+  head(8)
+```
+
+---
+
+::: {.callout-note icon=false}
+## 🏋️ Ejercicios — `select()`
+
+**1.** Del dataset `vinos`, selecciona solo las columnas de texto (tipo `character`).  
+*Pista:* usa `where(is.character)`.
+
+**2.** Del dataset `vinos`, selecciona todas las columnas cuyo nombre contenga la palabra `"acid"`.
+
+**3.** Del dataset `salud`, selecciona `ID`, `Age` y todas las columnas que contienen medidas de circunferencia. Renombra `WaistCircumference` como `cintura`.
+
+**4.** Filtra solo los participantes del dataset `salud` que residan en zona rural y luego selecciona únicamente `ID`, `Age`, `BMI` y `SmokingStatus`.
+
+:::
+
+::: {.callout-tip icon=false collapse=true}
+## ✅ Soluciones
+
+```{r}
+# 1. Columnas de texto en vinos
+vinos |> select(where(is.character)) |> head(4)
+
+# 2. Columnas que contienen "acid" en vinos
+vinos |> select(contains("acid")) |> head(4)
+
+# 3. ID, Age y circunferencias en salud (renombrando cintura)
+salud |>
+  select(ID, Age, cintura = WaistCircumference, HipCircumference) |>
+  head(5)
+
+# 4. Participantes rurales: columnas clave
+salud |>
+  filter(ResidenceType == "Rural") |>
+  select(ID, Age, BMI, SmokingStatus) |>
+  head(8)
+```
+:::
+
+---
+
+# Verbo 3: `arrange()` — Ordenar filas
+
+## La idea
+
+`arrange()` es el equivalente de `sort()` y `order()` en R base. Ordena las filas de la tabla según los valores de una o varias columnas.
+
+```{r}
+# R BASE: ordenar por alcohol de mayor a menor
+vinos[order(-vinos$alcohol), c("tipo", "quality", "alcohol")] |> head(5)
+
+# DPLYR: mismo resultado, mucho más claro
+vinos |>
+  select(tipo, quality, alcohol) |>
+  arrange(desc(alcohol)) |>
+  head(5)
+```
+
+## Ordenar de menor a mayor (default)
+
+```{r}
+# Vinos con menor alcohol primero
+vinos |>
+  select(tipo, quality, alcohol) |>
+  arrange(alcohol) |>
+  head(6)
+```
+
+```{r}
+# Participantes más jóvenes primero (NA van al final automáticamente)
+salud |>
+  select(ID, Age, BMI, SmokingStatus) |>
+  arrange(Age) |>
+  head(6)
+```
+
+## Ordenar de mayor a menor: `desc()`
+
+```{r}
+# Vinos con mayor calidad primero
+vinos |>
+  select(tipo, quality, alcohol) |>
+  arrange(desc(quality)) |>
+  head(6)
+```
+
+```{r}
+# Participantes con mayor colesterol
+salud |>
+  select(ID, Age, Cholesterol, SmokingStatus, EducationLevel) |>
+  arrange(desc(Cholesterol)) |>
+  head(8)
+```
+
+## Ordenar por múltiples columnas
+
+Cuando hay empates en la primera columna, la segunda actúa como desempate:
+
+```{r}
+# Primero ordena por quality (desc), en empate ordena por alcohol (desc)
+vinos |>
+  select(tipo, quality, alcohol, pH) |>
+  arrange(desc(quality), desc(alcohol)) |>
+  head(10)
+```
+
+```{r}
+# Primero por estatus de tabaquismo (A-Z), dentro de cada grupo por BMI (desc)
+salud |>
+  filter(!is.na(SmokingStatus)) |>
+  select(ID, SmokingStatus, BMI, Age) |>
+  arrange(SmokingStatus, desc(BMI)) |>
+  head(10)
+```
+
+> 💡 **Nota sobre NA en `arrange()`:** Los valores `NA` siempre van al final por defecto, tanto en orden ascendente como descendente.
+
+---
+
+::: {.callout-note icon=false}
+## 🏋️ Ejercicios — `arrange()`
+
+**1.** ¿Cuáles son los 10 vinos con mayor pH? Muestra también su tipo y calidad.
+
+**2.** ¿Qué participante del dataset `salud` tiene el nivel de glucosa más alto? Muestra el top 5 con su ID, edad y estatus de tabaquismo.
+
+**3.** Ordena los vinos blancos primero por calidad descendente y luego por acidez volátil (`volatile acidity`) ascendente. Muestra las primeras 10 filas.
+
+:::
+
+::: {.callout-tip icon=false collapse=true}
+## ✅ Soluciones
+
+```{r}
+# 1. Los 10 vinos con mayor pH
+vinos |>
+  select(tipo, quality, pH) |>
+  arrange(desc(pH)) |>
+  head(10)
+
+# 2. Top 5 glucosa más alta en salud
+salud |>
+  select(ID, Age, Glucose, SmokingStatus) |>
+  arrange(desc(Glucose)) |>
+  head(5)
+
+# 3. Vinos blancos ordenados por calidad y acidez volátil
+vinos |>
+  filter(tipo == "blanco") |>
+  select(tipo, quality, `volatile acidity`) |>
+  arrange(desc(quality), `volatile acidity`) |>
+  head(10)
+```
+:::
+
+---
+
+# Verbo 4: `mutate()` — Crear o modificar columnas
+
+## La idea
+
+`mutate()` añade columnas nuevas o modifica las existentes. Las columnas nuevas se calculan a partir de las que ya existen y se agregan al final del data frame.
+
+Piénsalo como "transformar" la tabla: no quitas ni agregas filas, solo agregas o cambias columnas.
+
+```{r}
+# R BASE: crear columna nueva en salud
+salud$riesgo_cardio <- (salud$BloodPressure + salud$Cholesterol) / 2
+
+# DPLYR: mismo resultado, sin modificar el objeto original
+salud |>
+  mutate(riesgo_cardio = (BloodPressure + Cholesterol) / 2) |>
+  select(ID, BloodPressure, Cholesterol, riesgo_cardio) |>
+  head(5)
+```
+
+> 💡 **Importante:** `mutate()` no modifica el data frame original. Para guardar los cambios necesitas asignarlo: `df <- df |> mutate(...)`.
+
+## Crear múltiples columnas a la vez
+
+```{r}
+# Guardamos el dataset de vinos con columnas nuevas
+vinos <- vinos |>
+  mutate(
+    calidad_alta   = ifelse(quality >= 7, "Sí", "No"),
+    alcohol_c      = alcohol - mean(alcohol, na.rm = TRUE),
+    proporcion_so2 = `free sulfur dioxide` / `total sulfur dioxide`
+  )
+
+vinos |>
+  select(tipo, quality, calidad_alta, alcohol, alcohol_c, proporcion_so2) |>
+  head(5)
+```
+
+```{r}
+# Guardamos el dataset de salud con columnas derivadas
+salud <- salud |>
+  mutate(
+    riesgo_cardio = round((BloodPressure + Cholesterol) / 2, 1),
+    ratio_cc      = round(WaistCircumference / HipCircumference, 3)
+  )
+
+salud |>
+  select(ID, BloodPressure, Cholesterol, riesgo_cardio, ratio_cc) |>
+  arrange(desc(riesgo_cardio)) |>
+  head(6)
+```
+
+## Crear columnas de texto: `ifelse()`
+
+`ifelse(condición, valor_si_TRUE, valor_si_FALSE)` es ideal para clasificaciones binarias:
+
+```{r}
+vinos <- vinos |>
+  mutate(azucar_alta = ifelse(`residual sugar` > 10, "Sí", "No"))
+
+vinos |>
+  group_by(tipo, azucar_alta) |>
+  summarise(n = n(), .groups = "drop")
+```
+
+```{r}
+salud <- salud |>
+  mutate(obesidad = ifelse(BMI >= 30, "Sí", "No"))
+
+count(salud, SmokingStatus, obesidad)
+```
+
+## Clasificaciones múltiples: `case_when()`
+
+Cuando tienes más de dos categorías, `case_when()` es como un `if-else` encadenado pero mucho más legible. La sintaxis es `condición ~ valor`:
+
+```{r}
+# Clasificamos la calidad de los vinos en tres niveles
+vinos <- vinos |>
+  mutate(
+    categoria = case_when(
+      quality <= 4 ~ "Baja",
+      quality <= 6 ~ "Media",
+      quality <= 8 ~ "Alta",
+      TRUE         ~ "Excepcional"   # TRUE actúa como "else"
+    )
+  )
+
+vinos |>
+  count(tipo, categoria) |>
+  arrange(tipo, categoria)
+```
+
+```{r}
+# Clasificación de IMC en salud — con manejo explícito de NA
+salud <- salud |>
+  mutate(
+    categoria_imc = case_when(
+      is.na(BMI)   ~ "Sin dato",    # ← siempre primero los NA
+      BMI < 18.5   ~ "Bajo peso",
+      BMI < 25     ~ "Normal",
+      BMI < 30     ~ "Sobrepeso",
+      TRUE         ~ "Obesidad"
+    )
+  )
+
+count(salud, categoria_imc, sort = TRUE)
+```
+
+> ⚠️ **NA en `case_when()`:** Si no incluyes `is.na(columna) ~ "valor"` como **primera condición**, los registros con NA caerán en el `TRUE` y se clasificarán incorrectamente. Siempre trata los NA explícitamente y en primer lugar.
+
+## Clasificaciones múltiples en salud
+
+```{r}
+# Nivel de estrés con manejo de NA
+salud <- salud |>
+  mutate(
+    nivel_estres = case_when(
+      is.na(StressLevel) ~ "Sin dato",
+      StressLevel < 30   ~ "Bajo",
+      StressLevel < 60   ~ "Moderado",
+      StressLevel < 80   ~ "Alto",
+      TRUE               ~ "Muy alto"
+    )
+  )
+
+count(salud, nivel_estres) |> arrange(nivel_estres)
+```
+
+---
+
+::: {.callout-note icon=false}
+## 🏋️ Ejercicios — `mutate()`
+
+**1.** Crea una nueva columna en `vinos` que se llame `nivel_alcohol` que clasifique así:
+- Menos de 10%: `"Bajo"` · Entre 10% y 12%: `"Medio"` · Más de 12%: `"Alto"`  
+*Pista:* usa `case_when()`.
+
+**2.** En `salud`, crea una columna `grupo_edad` que clasifique a los participantes en:  
+- Menos de 30: `"Joven"` · Entre 30–50: `"Adulto"` · Más de 50: `"Mayor"`  
+*Recuerda manejar los NA como primera condición.*
+
+**3.** Crea una columna `fumador_activo` en `salud` que sea `TRUE` si el participante fuma actualmente (`SmokingStatus == "Fuma"`), `FALSE` en caso contrario.
+
+:::
+
+::: {.callout-tip icon=false collapse=true}
+## ✅ Soluciones
+
+```{r}
+# 1. Nivel de alcohol en vinos
+vinos |>
+  mutate(
+    nivel_alcohol = case_when(
+      alcohol < 10  ~ "Bajo",
+      alcohol <= 12 ~ "Medio",
+      TRUE          ~ "Alto"
+    )
+  ) |>
+  count(tipo, nivel_alcohol)
+
+# 2. Grupo de edad en salud (con NA)
+salud |>
+  mutate(
+    grupo_edad = case_when(
+      is.na(Age) ~ "Sin dato",
+      Age < 30   ~ "Joven",
+      Age <= 50  ~ "Adulto",
+      TRUE       ~ "Mayor"
+    )
+  ) |>
+  count(grupo_edad)
+
+# 3. Columna fumador_activo
+salud |>
+  mutate(fumador_activo = SmokingStatus == "Fuma") |>
+  count(fumador_activo)
+```
+:::
+
+---
+
+# Verbo 5: `summarise()` — Resumir datos
+
+## La idea
+
+`summarise()` **colapsa** toda la tabla en una sola fila de estadísticas. Es como hacer `mean()`, `sum()`, `sd()` etc. en R base, pero de forma más organizada y fácil de extender.
+
+```{r}
+# R BASE: calcular varios estadísticos del alcohol en vinos
+c(
+  media   = mean(vinos$alcohol),
+  mediana = median(vinos$alcohol),
+  sd      = sd(vinos$alcohol),
+  n       = nrow(vinos)
+)
+
+# DPLYR: mismo resultado, más organizado y extendible
+vinos |>
+  summarise(
+    n               = n(),
+    media_alcohol   = round(mean(alcohol), 2),
+    mediana_alcohol = median(alcohol),
+    sd_alcohol      = round(sd(alcohol), 2),
+    min_calidad     = min(quality),
+    max_calidad     = max(quality)
+  )
+```
+
+```{r}
+# Resumen del dataset de salud — con na.rm = TRUE para manejar los NA
+salud |>
+  summarise(
+    n              = n(),
+    media_imc      = round(mean(BMI, na.rm = TRUE), 1),
+    mediana_imc    = round(median(BMI, na.rm = TRUE), 1),
+    media_edad     = round(mean(Age, na.rm = TRUE), 1),
+    max_colesterol = round(max(Cholesterol, na.rm = TRUE), 1),
+    n_sin_edad     = sum(is.na(Age))          # contar NA explícitamente
+  )
+```
+
+> 💡 **`na.rm = TRUE`:** Siempre añádelo cuando el dataset tiene NA y quieres calcular estadísticas sobre columnas numéricas. Sin él, cualquier NA en la columna hace que el resultado sea `NA`.
+
+## Funciones útiles dentro de `summarise()`
+
+| Función | ¿Qué hace? |
+|---|---|
+| `n()` | Cuenta el número de filas |
+| `n_distinct(x)` | Cuenta valores únicos en x |
+| `mean(x, na.rm=TRUE)` | Promedio |
+| `median(x, na.rm=TRUE)` | Mediana |
+| `sd(x, na.rm=TRUE)` | Desviación estándar |
+| `sum(x, na.rm=TRUE)` | Suma |
+| `min(x, na.rm=TRUE)` / `max(x, na.rm=TRUE)` | Mínimo / Máximo |
+| `sum(is.na(x))` | Cuenta los NA de una columna |
+
+---
+
+# Verbo 6: `group_by()` + `summarise()` — Resúmenes por grupo
+
+## La idea
+
+Esta es la combinación más poderosa de `dplyr`. `group_by()` divide el data frame en grupos invisibles, y las operaciones siguientes se aplican **dentro de cada grupo** en lugar de sobre toda la tabla.
+
+Piénsalo así: `group_by()` es como poner separadores en una caja de archivos. `summarise()` entonces calcula estadísticos para cada sección.
+
+```{r}
+# R BASE: calcular el promedio de calidad por tipo de vino
+tapply(vinos$quality, vinos$tipo, mean)
+
+# DPLYR: más claro y fácilmente extendible a más estadísticos
+vinos |>
+  group_by(tipo) |>
+  summarise(
+    n             = n(),
+    calidad_media = round(mean(quality), 2),
+    alcohol_medio = round(mean(alcohol), 2),
+    ph_medio      = round(mean(pH), 2),
+    .groups       = "drop"    # importante: siempre añadir para limpiar los grupos
+  )
+```
+
+> ⚠️ **Buena práctica:** siempre añade `.groups = "drop"` al final de un `summarise()` con `group_by()`. Si no lo haces, el resultado sigue agrupado y puede causar comportamientos inesperados.
+
+## Agrupar por varias columnas
+
+```{r}
+# Distribución de calidades por tipo de vino
+vinos |>
+  group_by(tipo, quality) |>
+  summarise(n = n(), .groups = "drop") |>
+  arrange(tipo, quality)
+```
+
+```{r}
+# Indicadores clínicos por estatus de tabaquismo y tipo de residencia
+salud |>
+  filter(!is.na(SmokingStatus), !is.na(ResidenceType)) |>
+  group_by(SmokingStatus, ResidenceType) |>
+  summarise(
+    n             = n(),
+    media_imc     = round(mean(BMI, na.rm = TRUE), 1),
+    media_colest  = round(mean(Cholesterol, na.rm = TRUE), 1),
+    .groups       = "drop"
+  ) |>
+  arrange(SmokingStatus, ResidenceType)
+```
+
+## Un análisis completo: ¿Los fumadores tienen mayor riesgo cardiovascular?
+
+```{r}
+salud |>
+  filter(!is.na(SmokingStatus)) |>
+  group_by(SmokingStatus) |>
+  summarise(
+    n                    = n(),
+    media_presion        = round(mean(BloodPressure, na.rm = TRUE), 1),
+    media_colesterol     = round(mean(Cholesterol, na.rm = TRUE), 1),
+    media_riesgo_cardio  = round(mean(riesgo_cardio, na.rm = TRUE), 1),
+    pct_obesidad         = round(mean(BMI >= 30, na.rm = TRUE) * 100, 1),
+    .groups              = "drop"
+  ) |>
+  arrange(desc(media_riesgo_cardio))
+```
+
+## `count()`: un atajo de `group_by()` + `summarise(n = n())`
+
+Cuando solo quieres contar, `count()` es un atajo muy conveniente:
+
+```{r}
+# Estas dos instrucciones producen el mismo resultado en vinos:
+vinos |>
+  group_by(tipo, categoria) |>
+  summarise(n = n(), .groups = "drop")
+
+# Atajo con count():
+vinos |>
+  count(tipo, categoria)
+```
+
+```{r}
+# Conteo en salud: participantes por nivel educativo
+salud |>
+  count(EducationLevel, sort = TRUE)
+```
+
+---
+
+::: {.callout-note icon=false}
+## 🏋️ Ejercicios — `group_by()` + `summarise()`
+
+**1.** Calcula el promedio de alcohol, pH y calidad para cada combinación de `tipo` y `categoria` de vino.
+
+**2.** ¿Qué estado civil del dataset `salud` tiene el nivel de estrés más alto en promedio? Muestra el top 3.
+
+**3.** Calcula el promedio de glucosa y colesterol por estatus de tabaquismo en `salud`.
+
+**4. Desafío:** ¿En qué combinación de `EducationLevel` y `ResidenceType` se observa el mayor BMI promedio en `salud`? Muestra el top 5.
+
+:::
+
+::: {.callout-tip icon=false collapse=true}
+## ✅ Soluciones
+
+```{r}
+# 1. Promedio por tipo y categoría en vinos
+vinos |>
+  group_by(tipo, categoria) |>
+  summarise(
+    n             = n(),
+    media_alcohol = round(mean(alcohol), 2),
+    media_ph      = round(mean(pH), 2),
+    media_quality = round(mean(quality), 2),
+    .groups       = "drop"
+  )
+
+# 2. Estado civil con mayor estrés
+salud |>
+  filter(!is.na(MaritalStatus)) |>
+  group_by(MaritalStatus) |>
+  summarise(
+    media_estres = round(mean(StressLevel, na.rm = TRUE), 1),
+    .groups      = "drop"
+  ) |>
+  slice_max(media_estres, n = 3)
+
+# 3. Glucosa y colesterol por tabaquismo
+salud |>
+  filter(!is.na(SmokingStatus)) |>
+  group_by(SmokingStatus) |>
+  summarise(
+    media_glucosa    = round(mean(Glucose, na.rm = TRUE), 1),
+    media_colesterol = round(mean(Cholesterol, na.rm = TRUE), 1),
+    .groups          = "drop"
+  )
+
+# 4. Educación + residencia con mayor BMI
+salud |>
+  group_by(EducationLevel, ResidenceType) |>
+  summarise(media_imc = round(mean(BMI, na.rm = TRUE), 1), n = n(), .groups = "drop") |>
+  filter(!is.na(EducationLevel), !is.na(ResidenceType)) |>
+  slice_max(media_imc, n = 5)
+```
+:::
+
+---
+
+# Joins — Combinar dos tablas
+
+## La idea
+
+Muchas veces la información que necesitas está repartida en dos tablas. Los **joins** las combinan usando una columna en común llamada *llave* (*key*).
+
+```{r}
+# Datos de ejemplo pequeños para entender los joins
+clientes <- tibble(
+  id     = c(1, 2, 3, 4),
+  nombre = c("Ana", "Beto", "Carla", "David")
+)
+
+pedidos <- tibble(
+  id      = c(2, 3, 4, 5),
+  producto = c("Libro", "Lámpara", "Silla", "Mesa")
+)
+
+clientes
+pedidos
+```
+
+Nota: Ana (id=1) no tiene pedido. La Mesa (id=5) no tiene cliente registrado.
+
+## `inner_join()` — Solo las coincidencias
+
+```{r}
+# Solo aparecen los IDs que existen en AMBAS tablas (2, 3, 4)
+inner_join(clientes, pedidos, by = "id")
+```
+
+## `left_join()` — Todos los de la izquierda
+
+```{r}
+# TODOS los clientes aparecen. Ana aparece con NA en producto
+left_join(clientes, pedidos, by = "id")
+```
+
+> 💡 `left_join()` es el join más usado en análisis de datos. La tabla "izquierda" es la que guía el resultado — no pierdes ninguna de sus filas.
+
+## `right_join()` — Todos los de la derecha
+
+```{r}
+right_join(clientes, pedidos, by = "id")
+```
+
+## `full_join()` — Todos de ambas tablas
+
+```{r}
+full_join(clientes, pedidos, by = "id")
+```
+
+## `anti_join()` — Los que NO coinciden
+
+```{r}
+# ¿Qué clientes NO tienen pedido?
+anti_join(clientes, pedidos, by = "id")
+```
+
+## `semi_join()` — Los que SÍ coinciden (sin duplicar columnas)
+
+```{r}
+semi_join(clientes, pedidos, by = "id")
+```
+
+### Diagrama resumen
+
+```
+Tabla A  Tabla B          inner  →  {2,3,4}
+  1         2             left   →  {1,2,3,4} (NA donde no hay B)
+  2         3             right  →  {2,3,4,5} (NA donde no hay A)
+  3         4             full   →  {1,2,3,4,5}
+  4         5             anti   →  {1}
+                          semi   →  {2,3,4}
+```
+
+## En la práctica: enriquecer el dataset de salud con un resumen por grupo
+
+Con datos reales es común querer enriquecer cada fila con el contexto de su grupo. Construimos dos tablas derivadas del mismo dataset y las unimos:
+
+```{r}
+# Tabla 1: registros individuales
+detalle_individual <- salud |>
+  select(ID, SmokingStatus, ResidenceType, Age, BMI, Cholesterol)
+
+# Tabla 2: resumen de indicadores por tipo de residencia
+resumen_zona <- salud |>
+  group_by(ResidenceType) |>
+  summarise(
+    imc_promedio_zona        = round(mean(BMI, na.rm = TRUE), 1),
+    colesterol_promedio_zona = round(mean(Cholesterol, na.rm = TRUE), 1),
+    n_en_zona                = n(),
+    .groups                  = "drop"
+  )
+
+resumen_zona
+```
+
+```{r}
+# Unimos: para cada participante, agregamos el contexto de su zona
+detalle_con_contexto <- detalle_individual |>
+  left_join(resumen_zona, by = "ResidenceType")
+
+# Ahora podemos calcular cuánto se aleja cada participante del promedio de su zona
+detalle_con_contexto |>
+  mutate(diferencia_imc = round(BMI - imc_promedio_zona, 2)) |>
+  filter(!is.na(diferencia_imc)) |>
+  select(ID, ResidenceType, BMI, imc_promedio_zona, diferencia_imc) |>
+  arrange(desc(diferencia_imc)) |>
+  head(8)
+```
+
+```{r}
+# anti_join: ¿hay participantes sin zona de residencia registrada?
+sin_zona <- salud |> filter(is.na(ResidenceType)) |> select(ID)
+anti_join(salud |> select(ID, ResidenceType), resumen_zona, by = "ResidenceType") |> head(5)
+```
+
+---
+
+::: {.callout-note icon=false}
+## 🏋️ Ejercicios — Joins
+
+**1.** Construye una tabla `resumen_educacion` con el BMI promedio y nivel de estrés promedio por `EducationLevel`. Luego usa `left_join()` para agregarla al dataset `salud`. ¿Cuántas filas tiene el resultado?
+
+**2.** ¿Existen niveles educativos en `resumen_educacion` que no aparezcan en `salud`? Usa `anti_join()` para verificarlo.
+
+**3.** Usando `left_join()`, combina `salud` con `resumen_zona` y luego muestra el BMI promedio por **ResidenceType**, comparándolo con el `imc_promedio_zona` calculado en el resumen.
+
+:::
+
+::: {.callout-tip icon=false collapse=true}
+## ✅ Soluciones
+
+```{r}
+# 1. Resumen por nivel educativo y left_join
+resumen_educacion <- salud |>
+  filter(!is.na(EducationLevel)) |>
+  group_by(EducationLevel) |>
+  summarise(
+    imc_prom_educ    = round(mean(BMI, na.rm = TRUE), 1),
+    estres_prom_educ = round(mean(StressLevel, na.rm = TRUE), 1),
+    .groups          = "drop"
+  )
+
+resultado_join <- salud |>
+  left_join(resumen_educacion, by = "EducationLevel")
+nrow(resultado_join)   # mismas filas que salud
+resultado_join |> select(ID, EducationLevel, BMI, imc_prom_educ) |> head(5)
+
+# 2. Niveles educativos sin coincidencia
+anti_join(resumen_educacion, salud, by = "EducationLevel")
+
+# 3. Comparar BMI individual vs. promedio de zona
+salud |>
+  left_join(resumen_zona, by = "ResidenceType") |>
+  group_by(ResidenceType) |>
+  summarise(
+    media_imc_real = round(mean(BMI, na.rm = TRUE), 1),
+    imc_zona       = first(imc_promedio_zona),
+    .groups        = "drop"
+  )
+```
+:::
+
+---
+
+# Funciones de ventana (window functions)
+
+Hasta ahora todos los verbos que vimos trabajan fila a fila (`mutate`) o colapsan todo en un resumen (`summarise`). Las **funciones de ventana** son un tercer tipo: calculan un valor por fila usando información de **otras filas del mismo grupo**, sin colapsar.
+
+Son ideales para rankings, comparaciones con el promedio del grupo, y diferencias entre periodos.
+
+## Ranking dentro de grupos
+
+```{r}
+# Top 5 vinos tintos de mayor calidad
+vinos |>
+  filter(tipo == "tinto") |>
+  mutate(ranking = row_number(desc(quality))) |>
+  filter(ranking <= 5) |>
+  select(tipo, quality, alcohol, ranking) |>
+  arrange(ranking)
+```
+
+```{r}
+# Top 3 IMC más alto por grupo de tabaquismo
+salud |>
+  filter(!is.na(SmokingStatus), !is.na(BMI)) |>
+  group_by(SmokingStatus) |>
+  mutate(ranking_imc = dense_rank(desc(BMI))) |>
+  filter(ranking_imc <= 3) |>
+  select(ID, SmokingStatus, BMI, ranking_imc) |>
+  arrange(SmokingStatus, ranking_imc)
+```
+
+## Comparar cada fila con el promedio del grupo
+
+```{r}
+# Para cada vino: ¿cuánto se aleja su calidad del promedio de su tipo?
+vinos |>
+  group_by(tipo) |>
+  mutate(
+    promedio_tipo = mean(quality),
+    diferencia    = round(quality - promedio_tipo, 2)
+  ) |>
+  ungroup() |>
+  select(tipo, quality, promedio_tipo, diferencia) |>
+  filter(abs(diferencia) > 1.5) |>
+  arrange(desc(diferencia)) |>
+  head(10)
+```
+
+```{r}
+# Para cada participante: ¿cuánto se aleja su colesterol del promedio de su grupo educativo?
+salud |>
+  filter(!is.na(EducationLevel)) |>
+  group_by(EducationLevel) |>
+  mutate(
+    promedio_educacion = round(mean(Cholesterol, na.rm = TRUE), 1),
+    diferencia         = round(Cholesterol - promedio_educacion, 1)
+  ) |>
+  ungroup() |>
+  filter(diferencia > 30) |>
+  select(ID, EducationLevel, Cholesterol, promedio_educacion, diferencia) |>
+  arrange(desc(diferencia)) |>
+  head(8)
+```
+
+## Cambios entre observaciones consecutivas: `lag()`
+
+```{r}
+# Diferencia de BMI entre participantes consecutivos (ordenados por edad)
+salud |>
+  filter(!is.na(Age), !is.na(BMI)) |>
+  arrange(Age) |>
+  mutate(
+    diferencia_imc_anterior = round(BMI - lag(BMI), 2)
+  ) |>
+  select(ID, Age, BMI, diferencia_imc_anterior) |>
+  head(10)
+```
+
+---
+
+# Verbos adicionales útiles
+
+## `rename()` — Solo renombrar columnas
+
+```{r}
+vinos |>
+  rename(calidad = quality, tipo_vino = tipo) |>
+  select(tipo_vino, calidad, alcohol) |>
+  head(4)
+```
+
+```{r}
+salud |>
+  rename(imc = BMI, tabaquismo = SmokingStatus) |>
+  select(ID, imc, tabaquismo) |>
+  head(4)
+```
+
+## `distinct()` — Filas únicas
+
+```{r}
+# ¿Cuántas calidades distintas hay en vinos?
+vinos |>
+  distinct(quality) |>
+  arrange(quality)
+```
+
+```{r}
+# Valores únicos de estatus de tabaquismo en salud
+salud |>
+  distinct(SmokingStatus) |>
+  arrange(SmokingStatus)
+```
+
+## `slice_max()` / `slice_min()` — Top N por grupo
+
+```{r}
+# Los 3 vinos con mayor calidad de cada tipo
+vinos |>
+  group_by(tipo) |>
+  slice_max(quality, n = 3) |>
+  select(tipo, quality, alcohol) |>
+  arrange(tipo, desc(quality))
+```
+
+```{r}
+# El participante con mayor BMI por tipo de residencia
+salud |>
+  filter(!is.na(ResidenceType), !is.na(BMI)) |>
+  group_by(ResidenceType) |>
+  slice_max(BMI, n = 1) |>
+  select(ID, ResidenceType, BMI, Age, SmokingStatus)
+```
+
+## `across()` — Aplicar una función a muchas columnas
+
+```{r}
+# Media de varias columnas numéricas de vinos por tipo
+vinos |>
+  group_by(tipo) |>
+  summarise(
+    across(c(quality, alcohol, pH), ~ round(mean(.x), 2)),
+    .groups = "drop"
+  )
+```
+
+```{r}
+# Media de TODAS las columnas numéricas de salud por estatus de tabaquismo
+salud |>
+  filter(!is.na(SmokingStatus)) |>
+  group_by(SmokingStatus) |>
+  summarise(
+    across(where(is.numeric), ~ round(mean(.x, na.rm = TRUE), 1)),
+    .groups = "drop"
+  ) |>
+  select(SmokingStatus, Age, BMI, Cholesterol, BloodPressure, Glucose)
+```
+
+---
+
+# Caso integrador: Análisis completo con ambas fuentes
+
+Aquí combinamos todo lo aprendido en un análisis con pasos explícitos y progresivos.
+
+## Pregunta 1: ¿Existe relación entre alcohol y calidad del vino?
+
+```{r}
+# Promedio de alcohol por nivel de calidad y tipo
+vinos |>
+  group_by(tipo, quality) |>
+  summarise(
+    n             = n(),
+    alcohol_medio = round(mean(alcohol), 2),
+    ph_medio      = round(mean(pH), 2),
+    .groups       = "drop"
+  ) |>
+  arrange(tipo, quality)
+```
+
+```{r}
+# Visualizamos la relación
+vinos |>
+  group_by(tipo, quality) |>
+  summarise(alcohol_medio = mean(alcohol), .groups = "drop") |>
+  ggplot(aes(x = quality, y = alcohol_medio, color = tipo, group = tipo)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c("tinto" = "#8B1A1A", "blanco" = "#D4A820")) +
+  labs(
+    title = "¿El alcohol distingue a los vinos de alta calidad?",
+    x     = "Calidad (puntuación del catador)",
+    y     = "Alcohol promedio (%)",
+    color = "Tipo de vino"
+  ) +
+  theme_minimal()
+```
+
+## Pregunta 2: ¿Cómo se distribuye el IMC por tabaquismo y nivel educativo en el dataset de salud?
+
+```{r}
+salud |>
+  filter(!is.na(SmokingStatus), !is.na(EducationLevel), !is.na(BMI)) |>
+  group_by(SmokingStatus, EducationLevel) |>
+  summarise(
+    media_imc = round(mean(BMI, na.rm = TRUE), 1),
+    n         = n(),
+    .groups   = "drop"
+  ) |>
+  arrange(SmokingStatus, desc(media_imc))
+```
+
+```{r}
+# Visualizamos el perfil por educación y tabaquismo
+salud |>
+  filter(!is.na(SmokingStatus), !is.na(EducationLevel), !is.na(BMI)) |>
+  group_by(SmokingStatus, EducationLevel) |>
+  summarise(media_imc = round(mean(BMI, na.rm = TRUE), 1), .groups = "drop") |>
+  ggplot(aes(x = EducationLevel, y = media_imc, fill = SmokingStatus)) +
+  geom_col(position = "dodge", alpha = 0.85) +
+  scale_fill_manual(
+    values = c("Fuma" = "#E03131", "No fuma" = "#2F9E44", "Ex-fumadora" = "#F08C00")
+  ) +
+  labs(
+    title = "IMC promedio por nivel educativo y estatus de tabaquismo",
+    x     = "Nivel educativo",
+    y     = "IMC promedio",
+    fill  = "Tabaquismo"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Resumen de lo aprendido
+
+| Verbo | ¿Qué hace? | Equivalente en R base |
+|---|---|---|
+| `filter()` | Filtra filas por condición | `df[condición, ]` |
+| `select()` | Elige columnas | `df[, c("col1","col2")]` |
+| `arrange()` | Ordena filas | `df[order(df$col), ]` |
+| `mutate()` | Crea/modifica columnas | `df$nueva <- ...` |
+| `summarise()` | Resume a una fila | `mean()`, `sum()`, etc. |
+| `group_by()` | Agrupa para operaciones por grupo | `tapply()`, `aggregate()` |
+| `*_join()` | Une dos tablas por una llave | `merge()` |
+
+**El pipe (`|>`)** permite encadenar todos estos verbos de forma legible, de arriba a abajo.
+
+---
+
+::: {.callout-note icon=false}
+## 🏆 Ejercicio integrador final
+
+Usando los dos datasets (`vinos` y `salud`), responde las siguientes preguntas:
+
+**A)** ¿Cuál es el promedio de calidad de los vinos **blancos** de categoría "Alta" o "Excepcional", agrupado por nivel de alcohol (`nivel_alcohol`)?  
+*Pista:* primero crea la columna `nivel_alcohol` con `mutate()` y `case_when()`.
+
+**B)** En el dataset `salud`, ¿qué 5 participantes tienen la mayor diferencia entre su BMI y el BMI promedio de su grupo educativo? Muestra su ID, nivel educativo, BMI individual y la diferencia.
+
+:::
+
+::: {.callout-tip icon=false collapse=true}
+## ✅ Solución del ejercicio integrador
+
+```{r}
+# A) Vinos blancos de calidad alta/excepcional agrupados por nivel de alcohol
+vinos |>
+  filter(tipo == "blanco", categoria %in% c("Alta", "Excepcional")) |>
+  mutate(
+    nivel_alcohol = case_when(
+      alcohol < 10  ~ "Bajo",
+      alcohol <= 12 ~ "Medio",
+      TRUE          ~ "Alto"
+    )
+  ) |>
+  group_by(nivel_alcohol) |>
+  summarise(
+    n             = n(),
+    calidad_media = round(mean(quality), 2),
+    .groups       = "drop"
+  ) |>
+  arrange(desc(calidad_media))
+
+# B) Top 5 participantes con mayor desvío de BMI respecto a su grupo educativo
+salud |>
+  filter(!is.na(EducationLevel), !is.na(BMI)) |>
+  group_by(EducationLevel) |>
+  mutate(
+    imc_prom_educ  = round(mean(BMI, na.rm = TRUE), 1),
+    diferencia_imc = round(abs(BMI - imc_prom_educ), 2)
+  ) |>
+  ungroup() |>
+  slice_max(diferencia_imc, n = 5) |>
+  select(ID, EducationLevel, BMI, imc_prom_educ, diferencia_imc)
+```
+:::

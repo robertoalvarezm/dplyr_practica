@@ -99,7 +99,7 @@ Cada fila representa un **paciente o participante**. Las columnas se dividen en 
 
 ```{r cargar-datos}
 # Cargamos el dataset desde archivo local
-salud <- read_csv("dataset_categorical_NA.csv", show_col_types = FALSE)
+salud <- read_csv("01_RawData/dataset_categorical_NA.csv", show_col_types = FALSE)
 
 glimpse(salud)
 ```
