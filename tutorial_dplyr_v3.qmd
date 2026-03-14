@@ -6,6 +6,7 @@ date: today
 lang: es
 format:
   html:
+    output-file: "index"
     toc: true
     toc-depth: 3
     toc-title: "📋 Contenido"
@@ -1526,3 +1527,21 @@ salud |>
   select(ID, EducationLevel, BMI, imc_prom_educ, diferencia_imc)
 ```
 :::
+
+
+
+
+```{r}
+salud |>
+  filter(!is.na(EducationLevel), !is.na(BMI)) |>
+  group_by(EducationLevel) |>
+  mutate(
+    imc_prom_educ  = round(mean(BMI, na.rm = TRUE), 1),
+    diferencia_imc = round(abs(BMI - imc_prom_educ), 2),
+    .groups="drop"
+  ) %>% 
+  slice_max(diferencia_imc, n = 2) |>
+  select(ID, EducationLevel, BMI, imc_prom_educ, diferencia_imc)
+  
+```
+

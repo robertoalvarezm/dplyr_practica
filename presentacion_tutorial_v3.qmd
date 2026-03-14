@@ -34,31 +34,29 @@ library(ggplot2)
 library(tidyr)
 ```
 
-## {background-color="#1A0A0F" .center}
+##  {.center background-color="#1A0A0F"}
 
 ::: {style="text-align:left; padding-left:3rem;"}
-
 [Aprendiendo `dplyr` paso a paso]{style="font-size:2.4rem; font-weight:700; color:#FFFFFF;"}
 
 [De R base a tidyverse · 🍷 **Vinos** + 🏥 **Salud**]{style="font-size:1.2rem; color:#D4B0BB; display:block; margin-top:1rem;"}
 
 [`dataset_categorical_NA.csv` · UCI ML Repository]{style="font-size:0.9rem; color:#7A5560; display:block; margin-top:2rem;"}
-
 :::
 
----
+------------------------------------------------------------------------
 
 # ¿Por qué `dplyr`? {background-color="#1A0A0F"}
 
----
+------------------------------------------------------------------------
 
 ## El problema con R base
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 **R base** — funciona, pero se lee de adentro hacia afuera:
 
-```r
+``` r
 head(
   vinos[vinos$quality >= 8,
         c("tipo", "quality", "alcohol")],
@@ -70,68 +68,66 @@ head(
 ::: {.column width="48%"}
 **dplyr** — se lee como una receta:
 
-```r
+``` r
 vinos |>
   filter(quality >= 8) |>
   select(tipo, quality, alcohol) |>
   head(5)
 ```
 :::
-:::
+:::::
 
 . . .
 
-> `dplyr` no reemplaza a R base — lo hace más legible.  
+> `dplyr` no reemplaza a R base — lo hace más legible.\
 > El vocabulario completo son **6 verbos**.
 
----
+------------------------------------------------------------------------
 
 ## Los 6 verbos
 
-::: {.r-fit-text}
-
-| Verbo | ¿Qué hace? |
-|---|---|
-| `filter()` | Filtra **filas** por condición |
-| `select()` | Elige **columnas** |
-| `arrange()` | **Ordena** filas |
-| `mutate()` | **Crea o modifica** columnas |
+::: r-fit-text
+| Verbo         | ¿Qué hace?                         |
+|---------------|------------------------------------|
+| `filter()`    | Filtra **filas** por condición     |
+| `select()`    | Elige **columnas**                 |
+| `arrange()`   | **Ordena** filas                   |
+| `mutate()`    | **Crea o modifica** columnas       |
 | `summarise()` | **Resume** la tabla a estadísticos |
-| `group_by()` | **Agrupa** para operar por grupo |
-
+| `group_by()`  | **Agrupa** para operar por grupo   |
 :::
 
----
+------------------------------------------------------------------------
 
 # Los datos {background-color="#1A0A0F"}
 
----
+------------------------------------------------------------------------
 
 ## Dataset 1 — Vinos 🍷 {.smaller}
 
 **Fuente:** UCI Machine Learning Repository · Portugal
 
-::: columns
+::::: columns
 ::: {.column width="40%"}
-- **6,497** muestras
-- **12** variables fisicoquímicas
-- Calidad: escala **0–10**
-- Tipos: `tinto` y `blanco`
+-   **6,497** muestras
+-   **12** variables fisicoquímicas
+-   Calidad: escala **0–10**
+-   Tipos: `tinto` y `blanco`
 :::
 
 ::: {.column width="58%"}
-| Variable | Descripción |
-|---|---|
-| `tipo` | `"tinto"` o `"blanco"` |
-| `quality` | Puntuación del catador |
-| `alcohol` | % de alcohol |
-| `pH` | Acidez (2.9–3.9) |
-| `volatile acidity` | Acidez volátil |
-| `residual sugar` | Azúcar residual |
+| Variable           | Descripción            |
+|--------------------|------------------------|
+| `tipo`             | `"tinto"` o `"blanco"` |
+| `quality`          | Puntuación del catador |
+| `alcohol`          | \% de alcohol          |
+| `pH`               | Acidez (2.9–3.9)       |
+| `volatile acidity` | Acidez volátil         |
+| `residual sugar`   | Azúcar residual        |
 :::
-:::
+:::::
 
-```r
+``` r
 url_tinto  <- "https://archive.ics.uci.edu/ml/.../winequality-red.csv"
 url_blanco <- "https://archive.ics.uci.edu/ml/.../winequality-white.csv"
 vinos <- bind_rows(
@@ -140,18 +136,18 @@ vinos <- bind_rows(
 )
 ```
 
----
+------------------------------------------------------------------------
 
 ## Dataset 2 — Indicadores de salud 🏥 {.smaller}
 
 **Fuente:** `dataset_categorical_NA.csv`
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 **Numéricas**
 
-`Age` · `BMI` · `BloodPressure`  
-`Cholesterol` · `Glucose`  
+`Age` · `BMI` · `BloodPressure`\
+`Cholesterol` · `Glucose`\
 `StressLevel` · `SleepHours`
 
 **20 participantes · 26 variables**
@@ -160,44 +156,38 @@ vinos <- bind_rows(
 ::: {.column width="48%"}
 **Categóricas**
 
-`SmokingStatus` → Fuma / No fuma / Ex-fumadora  
-`EducationLevel` → Preparatoria / Universidad / Posgrado  
-`MaritalStatus` · `EmploymentStatus`  
+`SmokingStatus` → Fuma / No fuma / Ex-fumadora\
+`EducationLevel` → Preparatoria / Universidad / Posgrado\
+`MaritalStatus` · `EmploymentStatus`\
 `ResidenceType` → Urbano / Suburbano / Rural
 :::
-:::
+:::::
 
 . . .
 
-::: {.callout-warning}
+::: callout-warning
 ## ⚠️ Valores NA
+
 Los datos faltantes son realidad en salud. Usa `na.rm = TRUE` en resúmenes, `is.na()` en filtros, y maneja NA **primero** en `case_when()`.
 :::
 
-```r
+``` r
 salud <- read_csv("01_dataset_categorical_NA.csv", show_col_types = FALSE)
 ```
 
----
+------------------------------------------------------------------------
 
-## El pipe `| >` o ` %>%  `{background-color="#0f2035"}
+## El pipe `| >` o `%>%`{background-color="#0f2035"}
 
 Antes de los verbos, necesitamos entender el pipe.
 
 ![Esto no es una pipa](images/MagritPipe.jpeg){fig-align="center" width="60%"}
 
-
 ------------------------------------------------------------------------
 
-## René Magritte, "Esto no es una pipa" (1929) — la obra maestra del surrealismo.\
-  
-  
-  {{< video https://www.youtube.com/embed/AZOvQ4KcJNE?si=xd7hgPsAxpEX21-e  width="800" height="500" 
-    title="René Magritte"
-    start="116"
-    aspect-ratio="21x9" 
-  >}}
-  
+## René Magritte, "Esto no es una pipa" (1929) — la obra maestra del surrealismo.
+
+{{< video https://www.youtube.com/embed/AZOvQ4KcJNE?si=xd7hgPsAxpEX21-e width="800" height="500" title="René Magritte" start="116" aspect-ratio="21x9" >}}
 
 ------------------------------------------------------------------------
 
@@ -205,17 +195,15 @@ Antes de los verbos, necesitamos entender el pipe.
 
 El pipe fue popularizado por el paquete `magrittr` de Hadley Wickham. En R 4.1 se incorporó oficialmente como `|>`.
 
-
 ![](images/MagrittrPaquete.png){fig-align="center" width="90%"})
 
--------------------------------------------------------------------------
-
+------------------------------------------------------------------------
 
 ## ¿Qué problema resuelve?
 
 **Sin pipe** → lees de adentro hacia afuera 😵
 
-```r
+``` r
 head(vinos[vinos$quality >= 8, c("tipo","quality","alcohol")], 5)
 ```
 
@@ -223,7 +211,7 @@ head(vinos[vinos$quality >= 8, c("tipo","quality","alcohol")], 5)
 
 **Con pipe** → lees de arriba hacia abajo ✅
 
-```r
+``` r
 vinos |>                          # 1. empezamos con los datos
   filter(quality >= 8) |>         # 2. filtramos
   select(tipo, quality, alcohol) |> # 3. elegimos columnas
@@ -232,18 +220,19 @@ vinos |>                          # 1. empezamos con los datos
 
 . . .
 
-::: {.callout-tip}
+::: callout-tip
 **Atajo:** `Ctrl+Shift+M` (Win) · `Cmd+Shift+M` (Mac)
 :::
 
----
+------------------------------------------------------------------------
 
 ## El pipe con ambos datasets
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 🍷 **vinos**
-```r
+
+``` r
 vinos |>
   filter(tipo == "tinto") |>
   filter(quality >= 7) |>
@@ -255,7 +244,8 @@ vinos |>
 
 ::: {.column width="48%"}
 🏥 **salud**
-```r
+
+``` r
 salud |>
   filter(SmokingStatus == "Fuma") |>
   select(ID, Age, BMI,
@@ -263,27 +253,29 @@ salud |>
   head(8)
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 # Verbo 1: `filter()` {background-color="#7B1D3A"}
 
 ## Quedarte solo con ciertas filas
 
----
+------------------------------------------------------------------------
 
 ## `filter()` — La idea
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 **R base:**
-```r
+
+``` r
 vinos[vinos$quality == 9, ]
 ```
 
 **dplyr:**
-```r
+
+``` r
 filter(vinos, quality == 9)
 ```
 
@@ -292,7 +284,8 @@ filter(vinos, quality == 9)
 
 ::: {.column width="48%"}
 **AND** → coma o `&`:
-```r
+
+``` r
 filter(vinos,
        tipo == "tinto",
        quality >= 8)
@@ -302,22 +295,24 @@ filter(salud,
        BMI > 25)
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 ## `filter()` — OR, `%in%`, rangos
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 **OR** → `|`:
-```r
+
+``` r
 filter(vinos,
        quality == 9 | alcohol > 14)
 ```
 
 **Varios valores** → `%in%`:
-```r
+
+``` r
 filter(vinos, quality %in% c(8, 9))
 
 filter(salud,
@@ -328,27 +323,30 @@ filter(salud,
 
 ::: {.column width="48%"}
 **Rango** → `between()`:
-```r
+
+``` r
 filter(vinos, between(pH, 3.0, 3.1))
 
 filter(salud, between(Age, 25, 55))
 ```
 
 **Incluir NA explícitamente:**
-```r
+
+``` r
 filter(salud,
        is.na(Age) | Age < 30)
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 ## `filter()` — Error frecuente y ejercicio
 
-::: {.callout-caution}
+::: callout-caution
 ## ⚠️ `=` vs `==`
-```r
+
+``` r
 filter(vinos, quality = 8)    # ❌  = es asignación
 filter(vinos, quality == 8)   # ✅  == es comparación
 ```
@@ -356,27 +354,28 @@ filter(vinos, quality == 8)   # ✅  == es comparación
 
 . . .
 
-::: {.callout-note}
+::: callout-note
 ## 🏋️ Ejercicios — `filter()`
-1. ¿Cuántos vinos blancos tienen calidad ≤ 5?  → `filter()` + `nrow()`
-2. Filtra vinos tintos con `alcohol > mean(vinos$alcohol)`.
-3. ¿Cuántos participantes (salud) son ex-fumadores y residen en zona urbana?
-4. Filtra `StressLevel > 80`. ¿Qué `SmokingStatus` predomina? → `count()`
+
+1.  ¿Cuántos vinos blancos tienen calidad ≤ 5? → `filter()` + `nrow()`
+2.  Filtra vinos tintos con `alcohol > mean(vinos$alcohol)`.
+3.  ¿Cuántos participantes (salud) son ex-fumadores y residen en zona urbana?
+4.  Filtra `StressLevel > 80`. ¿Qué `SmokingStatus` predomina? → `count()`
 :::
 
----
+------------------------------------------------------------------------
 
 # Verbo 2: `select()` {background-color="#5E3A5E"}
 
 ## Elegir columnas
 
----
+------------------------------------------------------------------------
 
 ## `select()` — La idea y helpers
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
-```r
+``` r
 # dplyr — sin comillas, sin c()
 select(vinos, tipo, quality, alcohol)
 
@@ -396,25 +395,26 @@ salud |>
 ::: {.column width="48%"}
 **Helpers de selección:**
 
-| Helper | Selecciona |
-|---|---|
-| `starts_with("x")` | Empieza con x |
-| `ends_with("x")` | Termina con x |
-| `contains("x")` | Contiene x |
-| `where(is.numeric)` | Numéricas |
-| `where(is.character)` | Texto |
-| `everything()` | Todo lo demás |
+| Helper                | Selecciona    |
+|-----------------------|---------------|
+| `starts_with("x")`    | Empieza con x |
+| `ends_with("x")`      | Termina con x |
+| `contains("x")`       | Contiene x    |
+| `where(is.numeric)`   | Numéricas     |
+| `where(is.character)` | Texto         |
+| `everything()`        | Todo lo demás |
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 ## `select()` — Con los datasets
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 🍷 **vinos:**
-```r
+
+``` r
 vinos |>
   select(tipo, quality,
          starts_with("total")) |>
@@ -428,7 +428,8 @@ vinos |>
 
 ::: {.column width="48%"}
 🏥 **salud:**
-```r
+
+``` r
 salud |>
   select(where(is.character)) |>
   head(4)
@@ -443,29 +444,31 @@ salud |>
   head(3)
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 # Verbo 3: `arrange()` {background-color="#1D4B6E"}
 
 ## Ordenar filas
 
----
+------------------------------------------------------------------------
 
 ## `arrange()` — Orden ascendente y descendente
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 **R base:**
-```r
+
+``` r
 vinos[order(-vinos$alcohol),
   c("tipo","quality","alcohol")] |>
   head(5)
 ```
 
 **dplyr:**
-```r
+
+``` r
 vinos |>
   select(tipo, quality, alcohol) |>
   arrange(desc(alcohol)) |>
@@ -475,7 +478,8 @@ vinos |>
 
 ::: {.column width="48%"}
 **Múltiples columnas:**
-```r
+
+``` r
 # Vinos: quality desc, alcohol desc
 vinos |>
   arrange(desc(quality),
@@ -488,28 +492,29 @@ salud |>
           desc(BMI))
 ```
 :::
-:::
+:::::
 
 . . .
 
-::: {.callout-tip}
+::: callout-tip
 **NA en `arrange()`:** siempre van al final por defecto, en cualquier dirección.
 :::
 
----
+------------------------------------------------------------------------
 
 # Verbo 4: `mutate()` {background-color="#028090"}
 
 ## Crear o modificar columnas
 
----
+------------------------------------------------------------------------
 
 ## `mutate()` — `ifelse()` y `case_when()`
 
-::: columns
+:::::: columns
 ::: {.column width="48%"}
 🍷 **ifelse — clasificación binaria:**
-```r
+
+``` r
 vinos <- vinos |>
   mutate(
     calidad_alta = ifelse(
@@ -519,7 +524,8 @@ vinos <- vinos |>
 ```
 
 **`case_when` — múltiples categorías:**
-```r
+
+``` r
 vinos <- vinos |>
   mutate(
     categoria = case_when(
@@ -532,9 +538,10 @@ vinos <- vinos |>
 ```
 :::
 
-::: {.column width="48%"}
+:::: {.column width="48%"}
 🏥 **salud — NA como primera condición:**
-```r
+
+``` r
 salud <- salud |>
   mutate(
     categoria_imc = case_when(
@@ -547,20 +554,21 @@ salud <- salud |>
   )
 ```
 
-::: {.callout-warning}
+::: callout-warning
 Sin `is.na()` primero, los NA caen en `TRUE` y se clasifican incorrectamente.
 :::
-:::
-:::
+::::
+::::::
 
----
+------------------------------------------------------------------------
 
 ## `mutate()` — Más ejemplos
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 🍷 **vinos — transformaciones:**
-```r
+
+``` r
 vinos <- vinos |>
   mutate(
     alcohol_c = alcohol - mean(alcohol),
@@ -572,7 +580,8 @@ vinos <- vinos |>
 
 ::: {.column width="48%"}
 🏥 **salud — indicadores derivados:**
-```r
+
+``` r
 salud <- salud |>
   mutate(
     riesgo_cardio =
@@ -588,37 +597,38 @@ salud <- salud |>
   )
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 ## `mutate()` — Ejercicio 🏋️
 
-::: {.callout-note}
+::: callout-note
 ## Ejercicios — `mutate()`
 
-**1. vinos** · Crea `nivel_alcohol`:  `Bajo` (<10%) · `Medio` (10–12%) · `Alto` (>12%)
+**1. vinos** · Crea `nivel_alcohol`: `Bajo` (\<10%) · `Medio` (10–12%) · `Alto` (\>12%)
 
-**2. salud** · Crea `grupo_edad`:  `Joven` (<30) · `Adulto` (30–50) · `Mayor` (>50)  
-&emsp;Recuerda poner `is.na(Age) ~ "Sin dato"` como primera condición.
+**2. salud** · Crea `grupo_edad`: `Joven` (\<30) · `Adulto` (30–50) · `Mayor` (\>50)\
+ Recuerda poner `is.na(Age) ~ "Sin dato"` como primera condición.
 
 **3. salud** · Crea `fumador_activo = TRUE` si `SmokingStatus == "Fuma"`, `FALSE` si no.
 :::
 
----
+------------------------------------------------------------------------
 
 # Verbo 5: `summarise()` {background-color="#3B6E4E"}
 
 ## Colapsar la tabla a estadísticos
 
----
+------------------------------------------------------------------------
 
 ## `summarise()` — La idea
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 🍷 **vinos:**
-```r
+
+``` r
 vinos |>
   summarise(
     n              = n(),
@@ -632,7 +642,8 @@ vinos |>
 
 ::: {.column width="48%"}
 🏥 **salud — con `na.rm`:**
-```r
+
+``` r
 salud |>
   summarise(
     n            = n(),
@@ -644,49 +655,51 @@ salud |>
   )
 ```
 :::
-:::
+:::::
 
 . . .
 
-::: {.callout-tip}
+::: callout-tip
 Añade siempre `na.rm = TRUE` en funciones de resumen cuando el dataset tiene NA.
 :::
 
----
+------------------------------------------------------------------------
 
 ## Funciones útiles en `summarise()`
 
-| Función | ¿Qué hace? |
-|---|---|
-| `n()` | Cuenta filas |
-| `n_distinct(x)` | Cuenta valores únicos |
-| `mean(x, na.rm=TRUE)` | Promedio (ignorando NA) |
-| `median(x, na.rm=TRUE)` | Mediana |
-| `sd(x, na.rm=TRUE)` | Desviación estándar |
-| `sum(x, na.rm=TRUE)` | Suma |
-| `min(x)` / `max(x)` | Mínimo / Máximo |
-| `sum(is.na(x))` | Cuenta los NA |
+| Función                 | ¿Qué hace?              |
+|-------------------------|-------------------------|
+| `n()`                   | Cuenta filas            |
+| `n_distinct(x)`         | Cuenta valores únicos   |
+| `mean(x, na.rm=TRUE)`   | Promedio (ignorando NA) |
+| `median(x, na.rm=TRUE)` | Mediana                 |
+| `sd(x, na.rm=TRUE)`     | Desviación estándar     |
+| `sum(x, na.rm=TRUE)`    | Suma                    |
+| `min(x)` / `max(x)`     | Mínimo / Máximo         |
+| `sum(is.na(x))`         | Cuenta los NA           |
 
----
+------------------------------------------------------------------------
 
 # Verbo 6: `group_by()` + `summarise()` {background-color="#C8993A"}
 
 ## La combinación más poderosa
 
----
+------------------------------------------------------------------------
 
 ## `group_by()` — La idea
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 **R base:**
-```r
+
+``` r
 tapply(vinos$quality,
        vinos$tipo, mean)
 ```
 
 **dplyr:**
-```r
+
+``` r
 vinos |>
   group_by(tipo) |>
   summarise(
@@ -701,7 +714,8 @@ vinos |>
 
 ::: {.column width="48%"}
 🏥 **salud por tabaquismo:**
-```r
+
+``` r
 salud |>
   filter(!is.na(SmokingStatus)) |>
   group_by(SmokingStatus) |>
@@ -716,19 +730,19 @@ salud |>
   )
 ```
 :::
-:::
+:::::
 
 . . .
 
-::: {.callout-warning}
+::: callout-warning
 Siempre añade `.groups = "drop"` para no dejar la tabla agrupada accidentalmente.
 :::
 
----
+------------------------------------------------------------------------
 
 ## `count()` — el atajo
 
-```r
+``` r
 # Estas dos instrucciones producen el mismo resultado:
 vinos |>
   group_by(tipo, categoria) |>
@@ -741,15 +755,16 @@ vinos |> count(tipo, categoria)
 salud |> count(EducationLevel, sort = TRUE)
 ```
 
----
+------------------------------------------------------------------------
 
 ## `group_by()` — Ejercicio 🏋️
 
-::: {.callout-note}
+::: callout-note
 ## Ejercicios — `group_by()` + `summarise()`
+
 **1. vinos** · Promedio de `alcohol`, `pH` y `quality` por combinación de `tipo` y `categoria`.
 
-**2. salud** · ¿Qué `MaritalStatus` tiene el estrés más alto en promedio? Top 3.  
+**2. salud** · ¿Qué `MaritalStatus` tiene el estrés más alto en promedio? Top 3.\
 *Pista:* `slice_max(media_estres, n = 3)`
 
 **3. salud** · Promedio de `Glucose` y `Cholesterol` por `SmokingStatus`.
@@ -757,17 +772,17 @@ salud |> count(EducationLevel, sort = TRUE)
 **4. Desafío** · ¿Qué combinación `EducationLevel` + `ResidenceType` tiene el mayor BMI promedio?
 :::
 
----
+------------------------------------------------------------------------
 
 # Joins {background-color="#7B1D3A"}
 
 ## Combinar dos tablas por una llave en común
 
----
+------------------------------------------------------------------------
 
 ## Los joins principales
 
-```
+```         
 Tabla A:  id1  id2  id3  id4
 Tabla B:       id2  id3  id4  id5
 
@@ -779,9 +794,9 @@ anti_join()  → {id1}  (los de A sin coincidencia en B)
 
 . . .
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
-```r
+``` r
 inner_join(clientes, pedidos,
            by = "id")
 
@@ -791,7 +806,7 @@ left_join(clientes, pedidos,
 :::
 
 ::: {.column width="48%"}
-```r
+``` r
 full_join(clientes, pedidos,
           by = "id")
 
@@ -799,13 +814,13 @@ anti_join(clientes, pedidos,
           by = "id")
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 ## Joins en la práctica — salud
 
-```r
+``` r
 # Tabla resumen por zona de residencia
 resumen_zona <- salud |>
   group_by(ResidenceType) |>
@@ -823,20 +838,21 @@ salud |>
   arrange(desc(diferencia_imc))
 ```
 
----
+------------------------------------------------------------------------
 
 # Funciones de ventana {background-color="#028090"}
 
 ## Calcular por fila usando el contexto del grupo
 
----
+------------------------------------------------------------------------
 
 ## Ranking y comparación con el grupo
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 🍷 **vinos — ranking:**
-```r
+
+``` r
 vinos |>
   filter(tipo == "tinto") |>
   mutate(
@@ -847,7 +863,8 @@ vinos |>
 ```
 
 **Comparar con promedio del grupo:**
-```r
+
+``` r
 vinos |>
   group_by(tipo) |>
   mutate(
@@ -860,7 +877,8 @@ vinos |>
 
 ::: {.column width="48%"}
 🏥 **salud — ranking por grupo:**
-```r
+
+``` r
 salud |>
   filter(!is.na(SmokingStatus)) |>
   group_by(SmokingStatus) |>
@@ -873,7 +891,8 @@ salud |>
 ```
 
 **`lag()` — diferencias entre filas:**
-```r
+
+``` r
 salud |>
   arrange(Age) |>
   mutate(
@@ -881,20 +900,21 @@ salud |>
   )
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 # Verbos adicionales {background-color="#1A0A0F"}
 
----
+------------------------------------------------------------------------
 
 ## `across()`, `slice_max()`, `distinct()`
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
 **`across()` — muchas columnas a la vez:**
-```r
+
+``` r
 # Media de varias cols. por tipo (vinos)
 vinos |>
   group_by(tipo) |>
@@ -918,7 +938,8 @@ salud |>
 
 ::: {.column width="48%"}
 **`slice_max()` / `distinct()`:**
-```r
+
+``` r
 # Top 3 vinos por tipo
 vinos |>
   group_by(tipo) |>
@@ -938,19 +959,19 @@ vinos |> distinct(quality) |>
   arrange(quality)
 ```
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
 # Caso integrador {background-color="#1A0A0F"}
 
 ## Todo junto con ambos datasets
 
----
+------------------------------------------------------------------------
 
 ## Pregunta 1 — ¿El alcohol distingue los mejores vinos? 🍷
 
-```r
+``` r
 # Análisis
 vinos |>
   group_by(tipo, quality) |>
@@ -963,7 +984,7 @@ vinos |>
   arrange(tipo, quality)
 ```
 
-```r
+``` r
 # Visualización
 vinos |>
   group_by(tipo, quality) |>
@@ -976,11 +997,11 @@ vinos |>
   theme_minimal()
 ```
 
----
+------------------------------------------------------------------------
 
 ## Pregunta 2 — IMC por tabaquismo y educación 🏥
 
-```r
+``` r
 # Análisis
 salud |>
   filter(!is.na(SmokingStatus), !is.na(EducationLevel), !is.na(BMI)) |>
@@ -993,7 +1014,7 @@ salud |>
   arrange(SmokingStatus, desc(media_imc))
 ```
 
-```r
+``` r
 # Visualización
 salud |>
   filter(!is.na(SmokingStatus), !is.na(EducationLevel)) |>
@@ -1005,76 +1026,73 @@ salud |>
   theme_minimal() + theme(legend.position = "bottom")
 ```
 
----
+------------------------------------------------------------------------
 
 ## 🏆 Ejercicio integrador final
 
-::: {.callout-note}
+::: callout-note
 ## Dos preguntas, un pipeline cada una
 
-**A) vinos** · ¿Cuál es el promedio de calidad de los vinos blancos de categoría "Alta" o "Excepcional", agrupado por `nivel_alcohol`?  
+**A) vinos** · ¿Cuál es el promedio de calidad de los vinos blancos de categoría "Alta" o "Excepcional", agrupado por `nivel_alcohol`?\
 *Pista:* primero crea `nivel_alcohol` con `mutate()` + `case_when()`.
 
-**B) salud** · ¿Qué 5 participantes tienen la mayor diferencia entre su BMI y el BMI promedio de su grupo educativo?  
+**B) salud** · ¿Qué 5 participantes tienen la mayor diferencia entre su BMI y el BMI promedio de su grupo educativo?\
 Muestra: `ID`, `EducationLevel`, `BMI`, `imc_prom_educ`, `diferencia_imc`.
 :::
 
----
+------------------------------------------------------------------------
 
 # Resumen {background-color="#1A0A0F"}
 
----
+------------------------------------------------------------------------
 
 ## Los 6 verbos + joins
 
-| Verbo | ¿Qué hace? | R base equiv. |
-|---|---|---|
-| `filter()` | Filtra filas | `df[condición, ]` |
-| `select()` | Elige columnas | `df[, c("col")]` |
-| `arrange()` | Ordena filas | `df[order(...), ]` |
-| `mutate()` | Crea / modifica cols. | `df$nueva <- ...` |
-| `summarise()` | Resume a estadísticos | `mean()`, `sum()`… |
-| `group_by()` | Agrupa por grupo | `tapply()`, `aggregate()` |
-| `*_join()` | Une dos tablas | `merge()` |
+| Verbo         | ¿Qué hace?            | R base equiv.             |
+|---------------|-----------------------|---------------------------|
+| `filter()`    | Filtra filas          | `df[condición, ]`         |
+| `select()`    | Elige columnas        | `df[, c("col")]`          |
+| `arrange()`   | Ordena filas          | `df[order(...), ]`        |
+| `mutate()`    | Crea / modifica cols. | `df$nueva <- ...`         |
+| `summarise()` | Resume a estadísticos | `mean()`, `sum()`…        |
+| `group_by()`  | Agrupa por grupo      | `tapply()`, `aggregate()` |
+| `*_join()`    | Une dos tablas        | `merge()`                 |
 
 . . .
 
 > **El pipe `|>`** los une todos de forma legible, de arriba a abajo.
 
----
+------------------------------------------------------------------------
 
 ## Próximos pasos en tidyverse
 
-::: columns
+::::: columns
 ::: {.column width="48%"}
-📦 **tidyr**  
-`pivot_wider()` / `pivot_longer()`  
+📦 **tidyr**\
+`pivot_wider()` / `pivot_longer()`\
 Transformar la forma de las tablas
 
-📦 **stringr**  
+📦 **stringr**\
 Manipular texto y cadenas de caracteres
-
 :::
 
 ::: {.column width="48%"}
-📦 **lubridate**  
+📦 **lubridate**\
 Trabajar con fechas y tiempos
 
-📦 **ggplot2**  
+📦 **ggplot2**\
 Visualización de datos *(ya usada en este tutorial)*
 :::
-:::
+:::::
 
----
+------------------------------------------------------------------------
 
-## {background-color="#1A0A0F" .center}
+##  {.center background-color="#1A0A0F"}
 
 ::: {style="text-align:center; padding:3rem;"}
-
 [¡Gracias!]{style="font-size:3.5rem; font-weight:700; color:#FFFFFF;"}
 
 [🍷 · 🏥 · 📊]{style="font-size:2.5rem; display:block; margin-top:1rem; color:#7B1D3A;"}
 
 [`dplyr` + `tidyverse` + R]{style="font-size:1.2rem; color:#7A5560; display:block; margin-top:2rem; font-family:monospace;"}
-
 :::
